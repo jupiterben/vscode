@@ -11,10 +11,8 @@ import pall from 'p-all';
 import path from 'path';
 import VinylFile from 'vinyl';
 import vfs from 'vinyl-fs';
-import { all, copyrightFilter, eslintFilter, indentationFilter, stylelintFilter, tsFormattingFilter, unicodeFilter } from './filters.ts';
-import eslint from './gulp-eslint.ts';
+import { all, copyrightFilter, indentationFilter, tsFormattingFilter, unicodeFilter } from './filters.ts';
 import * as formatter from './lib/formatter.ts';
-import gulpstylelint from './stylelint.ts';
 
 const copyrightHeaderLines = [
 	'/*---------------------------------------------------------------------------------------------',
@@ -28,9 +26,9 @@ interface VinylFileWithLines extends VinylFile {
 }
 
 /**
- * Main hygiene function that runs checks on files
+ * Main hygiene function that runs checks on files.
  */
-export function hygiene(some: NodeJS.ReadWriteStream | string[] | undefined, runEslint = true): NodeJS.ReadWriteStream {
+export function hygiene(some: NodeJS.ReadWriteStream | string[] | undefined): NodeJS.ReadWriteStream {
 	console.log('Starting hygiene...');
 	let errorCount = 0;
 
@@ -173,30 +171,6 @@ export function hygiene(some: NodeJS.ReadWriteStream | string[] | undefined, run
 	const streams: NodeJS.ReadWriteStream[] = [
 		result.pipe(filter(Array.from(tsFormattingFilter))).pipe(formatting)
 	];
-
-	if (runEslint) {
-		streams.push(
-			result
-				.pipe(filter(Array.from(eslintFilter)))
-				.pipe(
-					eslint((results) => {
-						errorCount += results.warningCount;
-						errorCount += results.errorCount;
-					})
-				)
-		);
-	}
-
-	streams.push(
-		result.pipe(filter(Array.from(stylelintFilter))).pipe(gulpstylelint(((message: string, isError: boolean) => {
-			if (isError) {
-				console.error(message);
-				errorCount++;
-			} else {
-				console.warn(message);
-			}
-		})))
-	);
 
 	let count = 0;
 	return es.merge(...streams).pipe(

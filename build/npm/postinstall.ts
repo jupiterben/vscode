@@ -131,7 +131,11 @@ function setNpmrcConfig(dir: string, env: NodeJS.ProcessEnv) {
 	}
 
 	if (dir === 'build') {
-		env['npm_config_target'] = process.versions.node;
+		// Node 23+ requires C++20 for V8 headers; tree-sitter 0.22.x still uses C++17.
+		// On Windows, use Node 22 as build target so native addons compile with Node 22 headers (N-API ABI stable on Node 24).
+		const nodeMajor = parseInt(process.versions.node.split('.')[0], 10);
+		const useNode22Target = process.platform === 'win32' && nodeMajor >= 24;
+		env['npm_config_target'] = useNode22Target ? '22.22.0' : process.versions.node;
 		env['npm_config_arch'] = process.arch;
 	}
 }
@@ -220,6 +224,7 @@ async function main() {
 	const nativeTasks: (() => Promise<void>)[] = [];
 	const parallelTasks: (() => Promise<void>)[] = [];
 
+	// When product.json has minimalBuiltInExtensionIds, dirs already excludes non-whitelisted extension dirs (see dirs.ts).
 	for (const dir of dirs) {
 		if (dir === '') {
 			removeParcelWatcherPrebuild(dir);

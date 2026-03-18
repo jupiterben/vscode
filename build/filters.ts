@@ -3,9 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { readFileSync } from 'fs';
-import { join } from 'path';
-
 /**
  * Hygiene works by creating cascading subsets of all our files and
  * passing them through a sequence of checks. Here are the current subsets,
@@ -213,21 +210,4 @@ export const tsFormattingFilter = Object.freeze<string[]>([
 	'!extensions/html-language-features/server/lib/jquery.d.ts',
 	'!extensions/terminal-suggest/src/shell/zshBuiltinsCache.ts',
 	'!extensions/terminal-suggest/src/shell/fishBuiltinsCache.ts',
-]);
-
-export const eslintFilter = Object.freeze<string[]>([
-	'**/*.js',
-	'**/*.cjs',
-	'**/*.mjs',
-	'**/*.ts',
-	'.eslint-plugin-local/**/*.ts',
-	...readFileSync(join(import.meta.dirname, '..', '.eslint-ignore'))
-		.toString()
-		.split(/\r\n|\n/)
-		.filter(line => line && !line.startsWith('#'))
-		.map(line => line.startsWith('!') ? line.slice(1) : `!${line}`)
-]);
-
-export const stylelintFilter = Object.freeze<string[]>([
-	'src/**/*.css'
 ]);

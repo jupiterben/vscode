@@ -28,6 +28,12 @@ import watcher from './lib/watch/index.ts';
 const root = path.dirname(import.meta.dirname);
 const commit = getVersion(root);
 
+/** Extension id from a tsconfig path (e.g. "extensions/git/tsconfig.json" -> "git", "extensions/json-language-features/client/tsconfig.json" -> "json-language-features"). */
+function extensionIdFromTsconfigPath(tsconfigPath: string): string {
+	const relative = tsconfigPath.replace(/^extensions\//, '').replace(/\\/g, '/');
+	return relative.split('/')[0];
+}
+
 // Tracks active extension compilations to emit aggregate
 // "Starting compilation" / "Finished compilation" messages
 // that the problem matcher in tasks.json relies on.
@@ -98,6 +104,17 @@ const compilations = [
 	'.vscode/extensions/vscode-extras/tsconfig.json',
 ];
 
+const minimalIds = ext.getMinimalBuiltInExtensionIds();
+const compilationsFiltered = minimalIds
+	? compilations.filter(p => {
+		if (p.startsWith('.vscode/extensions/')) {
+			return true;
+		}
+		const id = extensionIdFromTsconfigPath(p);
+		return minimalIds.includes(id);
+	})
+	: compilations;
+
 const getBaseUrl = (out: string) => `https://main.vscode-cdn.net/sourcemaps/${commit}/${out}`;
 
 function rewriteTsgoSourceMappingUrlsIfNeeded(build: boolean, out: string, baseUrl: string): Promise<void> {
@@ -112,7 +129,7 @@ function rewriteTsgoSourceMappingUrlsIfNeeded(build: boolean, out: string, baseU
 	);
 }
 
-const tasks = compilations.map(function (tsconfigFile) {
+const tasks = compilationsFiltered.map(function (tsconfigFile) {
 	const absolutePath = path.join(root, tsconfigFile);
 	const relativeDirname = path.dirname(tsconfigFile.replace(/^(.*\/)?extensions\//i, ''));
 

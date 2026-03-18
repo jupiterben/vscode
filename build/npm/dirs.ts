@@ -3,12 +3,40 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
+
+function getMinimalExtensionIds(): string[] | undefined {
+	try {
+		const productPath = join(import.meta.dirname, '../../product.json');
+		const product = JSON.parse(readFileSync(productPath, 'utf8'));
+		const ids = product.minimalBuiltInExtensionIds;
+		if (Array.isArray(ids) && ids.length > 0) {
+			return ids;
+		}
+	} catch {
+		// ignore
+	}
+	return undefined;
+}
+
+/** Extension id from a dir path (e.g. "extensions/git" -> "git", "extensions/json-language-features/server" -> "json-language-features"). */
+function extensionIdFromDir(dir: string): string | null {
+	if (!dir.startsWith('extensions/')) {
+		return null;
+	}
+	return dir.replace(/^extensions\//, '').replace(/\\/g, '/').split('/')[0];
+}
+
+const minimalIds = getMinimalExtensionIds();
+const minimalSet = minimalIds ? new Set(minimalIds) : undefined;
 
 /**
- * Complete list of directories where npm should be executed to install node modules
+ * Complete list of directories where npm should be executed to install node modules.
+ * When product.json has minimalBuiltInExtensionIds (non-empty), only those extension dirs are included.
  */
-export const dirs = [
+export const dirs = (() => {
+	const raw = [
 	'',
 	'build',
 	'build/vite',
@@ -61,10 +89,27 @@ export const dirs = [
 	'.vscode/extensions/vscode-selfhost-import-aid',
 	'.vscode/extensions/vscode-selfhost-test-provider',
 	'.vscode/extensions/vscode-extras',
-];
-
-if (existsSync(`${import.meta.dirname}/../../.build/distro/npm`)) {
-	dirs.push('.build/distro/npm');
-	dirs.push('.build/distro/npm/remote');
-	dirs.push('.build/distro/npm/remote/web');
-}
+	];
+	if (!minimalSet) {
+		const result = [...raw];
+		if (existsSync(`${import.meta.dirname}/../../.build/distro/npm`)) {
+			result.push('.build/distro/npm');
+			result.push('.build/distro/npm/remote');
+			result.push('.build/distro/npm/remote/web');
+		}
+		return result;
+	}
+	const filtered = raw.filter(d => {
+		const id = extensionIdFromDir(d);
+		if (id === null) {
+			return true;
+		}
+		return minimalSet.has(id);
+	});
+	if (existsSync(`${import.meta.dirname}/../../.build/distro/npm`)) {
+		filtered.push('.build/distro/npm');
+		filtered.push('.build/distro/npm/remote');
+		filtered.push('.build/distro/npm/remote/web');
+	}
+	return filtered;
+})();

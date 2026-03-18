@@ -1,0 +1,16 @@
+{
+	"description": "Copy this array into product.json as minimalBuiltInExtensionIds for a minimal build. Only these extensions will be compiled and packaged.",
+	"minimalBuiltInExtensionIds": [
+		"configuration-editing",
+		"css-language-features",
+		"emmet",
+		"extension-editing",
+		"git",
+		"git-base",
+		"json-language-features",
+		"markdown-language-features",
+		"merge-conflict",
+		"search-result",
+		"theme-defaults"
+	]
+}

@@ -122,14 +122,38 @@ function installHeaders() {
 	const local = getHeaderInfo(path.join(import.meta.dirname, '..', '..', '.npmrc'));
 	const remote = getHeaderInfo(path.join(import.meta.dirname, '..', '..', 'remote', '.npmrc'));
 
+	const maxAttempts = 3;
+	const runNodeGyp = (disturl: string, target: string) => {
+		for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+			try {
+				child_process.execFileSync(node_gyp, ['install', '--dist-url', disturl, target], { shell: true });
+				return;
+			} catch (err) {
+				const msg = (err as Error).message ?? String(err);
+				const isNetworkError = /ETIMEDOUT|ECONNRESET|ENOTFOUND|EAI_AGAIN|fetch failed/i.test(msg);
+				if (attempt < maxAttempts && isNetworkError) {
+					console.warn(`node-gyp install failed (attempt ${attempt}/${maxAttempts}), retrying in 5s...`);
+					// ~5s wait: Windows ping -n 6 127.0.0.1, Unix sleep 5
+					if (process.platform === 'win32') {
+						child_process.execFileSync('ping', ['-n', '6', '127.0.0.1'], { stdio: 'ignore' });
+					} else {
+						child_process.execFileSync('sleep', ['5'], { stdio: 'ignore' });
+					}
+				} else {
+					throw err;
+				}
+			}
+		}
+	};
+
 	if (local !== undefined) {
 		// Both disturl and target come from a file checked into our repository
-		child_process.execFileSync(node_gyp, ['install', '--dist-url', local.disturl, local.target], { shell: true });
+		runNodeGyp(local.disturl, local.target);
 	}
 
 	if (remote !== undefined) {
 		// Both disturl and target come from a file checked into our repository
-		child_process.execFileSync(node_gyp, ['install', '--dist-url', remote.disturl, remote.target], { shell: true });
+		runNodeGyp(remote.disturl, remote.target);
 	}
 
 	// On Linux, apply a patch to the downloaded headers

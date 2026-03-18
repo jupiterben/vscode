@@ -65,6 +65,22 @@ MANDATORY: Always check for compilation errors before running any tests or valid
 - Use the run test tool if you need to run tests. If that tool is not available, then you can use `scripts/test.sh` (or `scripts\test.bat` on Windows) for unit tests (add `--grep <pattern>` to filter tests) or `scripts/test-integration.sh` (or `scripts\test-integration.bat` on Windows) for integration tests (integration tests end with .integrationTest.ts or are in /extensions/).
 - Use `npm run valid-layers-check` to check for layering issues
 
+## Minimal build (最小化构建)
+
+A minimal build reduces compile time, install time, and skips tests/lint by configuration:
+
+- **Extension whitelist**: In `product.json`, set `minimalBuiltInExtensionIds` to a non-empty array of extension directory names (e.g. `configuration-editing`, `git`, `json-language-features`, `markdown-language-features`, `theme-defaults`). Only those extensions are compiled, packaged, and installed. See `build/minimal-extensions.json` for a recommended list. Leave `minimalBuiltInExtensionIds` as `[]` for a full build.
+- **Tests**: `npm run test` prints a hint and exits. With `VSCODE_MINIMAL_BUILD=1`, it exits without running tests. Run `npm run test-full` (or `scripts/test.bat` / `scripts/test.sh`) to run the full unit test suite.
+- **ESLint / Stylelint**: With `VSCODE_MINIMAL_BUILD=1` or `SKIP_LINT=1`, the precommit hook and hygiene run without ESLint and Stylelint (copyright, indentation, and formatting checks still run). Run `npm run eslint` or `npm run stylelint` manually when needed.
+- **Postinstall**: When `minimalBuiltInExtensionIds` is set, `npm install` (postinstall) runs only in whitelisted extension dirs, so install is faster.
+
+### Windows: MSB8040 (Spectre-mitigated libraries)
+
+If `npm install` fails with **MSB8040** (Spectre-mitigated libraries required) when building native addons (e.g. `native-is-elevated`), either:
+
+1. **Install Spectre libs**: Open Visual Studio Installer → Modify Build Tools 2022 → Individual components → search “Spectre” → check **MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs** → Install.
+2. **Disable Spectre for native builds**: Root `.npmrc` can include `msbuild_args=/p:SpectreMitigation=false` so node-gyp passes it to MSBuild (if your node-gyp version supports it).
+
 ## Coding Guidelines
 
 ### Indentation

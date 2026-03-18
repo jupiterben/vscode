@@ -293,6 +293,18 @@ const productJson = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, '.
 const builtInExtensions: IExtensionDefinition[] = productJson.builtInExtensions || [];
 const webBuiltInExtensions: IExtensionDefinition[] = productJson.webBuiltInExtensions || [];
 
+/**
+ * When set (non-empty array), only these extension ids are compiled and packaged (minimal build).
+ * Extension id = directory name under extensions/ (e.g. "git", "json-language-features").
+ */
+export function getMinimalBuiltInExtensionIds(): string[] | undefined {
+	const ids = productJson.minimalBuiltInExtensionIds;
+	if (Array.isArray(ids) && ids.length > 0) {
+		return ids;
+	}
+	return undefined;
+}
+
 type ExtensionKind = 'ui' | 'workspace' | 'web';
 interface IExtensionManifest {
 	main?: string;
@@ -372,6 +384,8 @@ export function packageAllLocalExtensionsStream(forWeb: boolean, disableMangle: 
  */
 function doPackageLocalExtensionsStream(forWeb: boolean, disableMangle: boolean, native: boolean): Stream {
 	const nativeExtensionsSet = new Set(nativeExtensions);
+	const minimalIds = getMinimalBuiltInExtensionIds();
+	const minimalSet = minimalIds ? new Set(minimalIds) : undefined;
 	const localExtensionsDescriptions = (
 		(glob.sync('extensions/*/package.json') as string[])
 			.map(manifestPath => {
@@ -383,6 +397,7 @@ function doPackageLocalExtensionsStream(forWeb: boolean, disableMangle: boolean,
 			.filter(({ name }) => native ? nativeExtensionsSet.has(name) : !nativeExtensionsSet.has(name))
 			.filter(({ name }) => excludedExtensions.indexOf(name) === -1)
 			.filter(({ name }) => builtInExtensions.every(b => b.name !== name))
+			.filter(({ name }) => !minimalSet || minimalSet.has(name))
 			.filter(({ manifestPath }) => (forWeb ? isWebExtension(require(manifestPath)) : true))
 	);
 	const localExtensionsStream = minifyExtensionResources(
