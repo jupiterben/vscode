@@ -565,14 +565,10 @@ export async function esbuildExtensions(taskName: string, isWatch: boolean, scri
 
 
 // Additional projects to run esbuild on. These typically build code for webviews
+// Minimal build: only include scripts for extensions that exist
 const esbuildMediaScripts = [
-	'ipynb/esbuild.notebook.mts',
-	'markdown-language-features/esbuild.notebook.mts',
-	'markdown-language-features/esbuild.webview.mts',
-	'markdown-math/esbuild.notebook.mts',
-	'mermaid-chat-features/esbuild.webview.mts',
-	'notebook-renderers/esbuild.notebook.mts',
-	'simple-browser/esbuild.webview.mts',
+	'typescript-language-features/esbuild.mts',
+	'typescript-language-features/esbuild.browser.mts',
 ];
 
 export function buildExtensionMedia(isWatch: boolean, outputRoot?: string): Promise<void> {
